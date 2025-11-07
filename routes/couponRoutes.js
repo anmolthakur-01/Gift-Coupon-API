@@ -6,14 +6,14 @@ const {
   getOneCoupon,
   updateCoupon,
   deleteCoupon,
-  oneTimeCoupon
+  applyCoupon
 } = require("../controllers/couponController");
 
 router.post("/create", createCoupon);
 router.get("/get-all", getAllCoupon);
-router.get("/get-one/:id", getOneCoupon);
+router.get("/get-one", getOneCoupon);
 router.put("/update", updateCoupon);
-router.delete("/delete/:id", deleteCoupon);
-router.post("/use", oneTimeCoupon);
+router.delete("/delete", deleteCoupon);
+router.post("/apply", applyCoupon);
 
 module.exports = router;

@@ -4,10 +4,21 @@ const Coupon = require("../models/couponModel");
 const createCoupon = async (req, res) => {
   try {
     const { code, discount, expiryDate } = req.body;
-    const coupon = await Coupon.create({ code, discount, expiryDate });
-    res.status(201).json(coupon);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
+
+    const existingCoupon = await Coupon.findOne({ code });
+    if (existingCoupon) {
+      return res.status(400).json({ message: "Coupon code already exists" });
+    }
+
+    const coupon = await Coupon.create({
+      code,
+      discount,
+      expiryDate,
+    });
+
+    res.status(201).json({ message: "Coupon created successfully", coupon });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -15,7 +26,7 @@ const createCoupon = async (req, res) => {
 const getAllCoupon = async (req, res) => {
   try {
     const coupons = await Coupon.find();
-    res.json(coupons);
+    res.status(201).json({ message: "Coupon finded successfully", coupons });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -24,11 +35,10 @@ const getAllCoupon = async (req, res) => {
 // READ ONE
 const getOneCoupon = async (req, res) => {
   try {
-    const coupon = await Coupon.findById(req.params.id);
+    const coupon = await Coupon.findById(req.body.id);
     if (!coupon) return res.status(404).json({ message: "Coupon not found" });
-    res.json(coupon);
+    res.status(201).json({ message: "Coupon finded successfully", coupon });
   } catch (err) {
-    console.log(err.message)
     res.status(400).json({ message: err.message });
   }
 };
@@ -36,49 +46,83 @@ const getOneCoupon = async (req, res) => {
 // UPDATE
 const updateCoupon = async (req, res) => {
   try {
-    const updatedCoupon = await Coupon.findByIdAndUpdate(
-      
-      req.body.id,
-      {
-        new: true,
-      }
+    const { code, discount, expiryDate } = req.body;
+
+    // Require the coupon code to identify which one to update
+    if (!code) {
+      return res
+        .status(400)
+        .json({ message: "Coupon code is required to update" });
+    }
+
+    // Find and update
+    const coupon = await Coupon.findOneAndUpdate(
+      { code: code.toUpperCase() },
+      { discount, expiryDate },
+      { new: true, runValidators: true }
     );
-    if (!updatedCoupon)
+
+    if (!coupon) {
       return res.status(404).json({ message: "Coupon not found" });
-    res.status(200).json(updatedCoupon);
+    }
+
+    res.status(200).json({
+      message: "Coupon updated successfully",
+      coupon,
+    });
   } catch (error) {
-    console.error(error);
-    res.status(400).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
 // DELETE
 const deleteCoupon = async (req, res) => {
   try {
-    const deleted = await Coupon.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: "Coupon not found" });
-    res.json({ message: "Coupon deleted successfully" });
+    const { code } = req.body;
+
+    if (!code) {
+      return res
+        .status(400)
+        .json({ message: "Coupon code is required to delete" });
+    }
+
+    // Delete coupon by code (case-insensitive)
+    const deleted = await Coupon.deleteOne({ code: code.toUpperCase() });
+
+    if (deleted.deletedCount === 0) {
+      return res.status(404).json({ message: "Coupon not found" });
+    }
+
+    res.status(200).json({ message: "Coupon deleted successfully" });
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
 // one-time use
-const oneTimeCoupon = async (req, res) => {
+const applyCoupon = async (req, res) => {
   try {
     const { code } = req.body;
     const coupon = await Coupon.findOne({ code: code.toUpperCase() });
 
-    if (!coupon) return res.status(404).json({ message: "Coupon not found" });
+    if (!coupon)
+      return res.status(404).json({ message: "Invalid coupon code" });
 
+    // Check expiry
     if (coupon.expiryDate < new Date())
       return res.status(400).json({ message: "Coupon expired" });
 
+    // Check if already used
     if (coupon.isUsed)
       return res.status(400).json({ message: "Coupon already used" });
 
+    // Check if active
+    if (!coupon.isActive)
+      return res.status(400).json({ message: "Coupon is inactive" });
+
+    // Mark coupon as used
     coupon.isUsed = true;
-    coupon.isActive = false;
+    coupon.isActive = false; // deactivate it
     await coupon.save();
 
     res.status(200).json({
@@ -96,5 +140,5 @@ module.exports = {
   getOneCoupon,
   updateCoupon,
   deleteCoupon,
-  oneTimeCoupon,
+  applyCoupon,
 };
