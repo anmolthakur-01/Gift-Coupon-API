@@ -28,6 +28,7 @@ const getOneCoupon = async (req, res) => {
     if (!coupon) return res.status(404).json({ message: "Coupon not found" });
     res.json(coupon);
   } catch (err) {
+    console.log(err.message)
     res.status(400).json({ message: err.message });
   }
 };
@@ -36,8 +37,8 @@ const getOneCoupon = async (req, res) => {
 const updateCoupon = async (req, res) => {
   try {
     const updatedCoupon = await Coupon.findByIdAndUpdate(
-      req.params.id,
-      req.body,
+      
+      req.body.id,
       {
         new: true,
       }
@@ -65,7 +66,7 @@ const deleteCoupon = async (req, res) => {
 // one-time use
 const oneTimeCoupon = async (req, res) => {
   try {
-    const { code } = req.params;
+    const { code } = req.body;
     const coupon = await Coupon.findOne({ code: code.toUpperCase() });
 
     if (!coupon) return res.status(404).json({ message: "Coupon not found" });

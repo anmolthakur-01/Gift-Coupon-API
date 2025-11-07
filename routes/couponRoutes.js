@@ -12,8 +12,8 @@ const {
 router.post("/create", createCoupon);
 router.get("/get-all", getAllCoupon);
 router.get("/get-one/:id", getOneCoupon);
-router.put("/:id", updateCoupon);
+router.put("/update", updateCoupon);
 router.delete("/delete/:id", deleteCoupon);
-router.post("/use/:code", oneTimeCoupon);
+router.post("/use", oneTimeCoupon);
 
 module.exports = router;
